@@ -13,14 +13,10 @@ use crate::commands::cli::Cli;
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    if let Some(path) = cli.path {
+    let contents = if let Some(path) = cli.path {
         let contents = fs::read_to_string(&path)
             .expect("Should have been able to read the file");
-
-        let b64 = base64::encode(&contents);
-        dbg!(b64);
-        qr2term::print_qr(&contents)?;
-        Ok(())
+        contents.into_bytes()
     }
     else {
         let mut vec :Vec<u8> = Vec::with_capacity(commands::cli::default_max_len());
@@ -44,10 +40,17 @@ fn main() -> Result<()> {
                 vec.extend_from_slice(&buffer[..len]);
             }
         }
-        println!("vec: {:?}", vec);
-        qr2term::print_qr(&vec)?;
         eprintln!("total bytes: {}", nbytes);
-        Ok(())
-    }
+        println!("vec: {:?}", vec);
+        vec
+    };
+    let b64 = base64::encode(&contents);
+    let out_url = format!("{}:{}/neb?{}", cli.host, cli.port, &b64);
+    dbg!(&out_url);
+    dbg!(b64);
+    qr2term::print_qr(&contents)?;
+    eprintln!("code for :{}", &out_url);
+    qr2term::print_qr(&out_url)?;
+    Ok(())
 }
 
